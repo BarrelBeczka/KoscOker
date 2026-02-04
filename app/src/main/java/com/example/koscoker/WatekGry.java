@@ -2,15 +2,21 @@ package com.example.koscoker;
 
 import java.util.Random;
 
-// Wątek odpowiedzialny za logikę gry (animację rzutu kośćmi)
+// Wątek odpowiedzialny za animację rzutu kośćmi
 public class WatekGry extends Thread {
 
+    // Zmienne przechowujące stan wątku
     private boolean czyDziala = true;
     private WidokStolu widokStolu;
     private Random losowy = new Random();
+    private int[] obecneWyniki;
+    private boolean[] zablokowane;
 
-    public WatekGry(WidokStolu widok) {
+    // Konstruktor wątku gry
+    public WatekGry(WidokStolu widok, int[] wyniki, boolean[] blokady) {
         this.widokStolu = widok;
+        this.obecneWyniki = wyniki.clone(); // Kopia, żeby nie zmieniać oryginału 
+        this.zablokowane = blokady != null ? blokady : new boolean[5];
     }
 
     // Metoda zatrzymująca wątek
@@ -18,31 +24,42 @@ public class WatekGry extends Thread {
         czyDziala = false;
     }
 
+    // Główna pętla wątku w której dzieje się animacja rzutu kośćmi
     @Override
     public void run() {
         int licznikRzutow = 0;
         
-        while (czyDziala && licznikRzutow < 20) { // Symulacja trwa np. 20 klatek (ok. 2 sekundy)
+        // Pętla wykonuje się dopóki wątek jest aktywny (czyDziala) i nie przekroczono limitu rzutów (animacja)
+        while (czyDziala && licznikRzutow < 20) { 
             try {
-                // Odczekaj chwilę (symulacja myślenia/animacji)
+                // Uśpienie wątku na 100ms - symuluje opóźnienie i daje efekt animacji
                 Thread.sleep(100); 
                 
-                // Wylosuj nowe wyniki
-                int[] noweWyniki = new int[5];
+                // Klonujemy obecne wyniki, żeby pracować na kopii
+                int[] noweWyniki = obecneWyniki.clone();
+                
+                // Losujemy nowe wartości dla każdej kości
                 for (int i = 0; i < 5; i++) {
-                    noweWyniki[i] = losowy.nextInt(6) + 1; // 1-6
+                    // Jeśli kość NIE jest zablokowana (zablokowane[i] == false), to losujemy nową wartość
+                    if (!zablokowane[i]) {
+                        noweWyniki[i] = losowy.nextInt(6) + 1; // Losuj liczbę 1-6
+                    }
                 }
 
-                // Zaktualizuj widok (to wywoła postInvalidate w widoku)
+                // Aktualizujemy widok na ekranie i sprawdzamy czy widokStolu nadal istnieje
                 if (widokStolu != null) {
                     widokStolu.aktualizujWyniki(noweWyniki);
                 }
 
                 licznikRzutow++;
+                
+                // Aktualizacja obecnych wyników
+                obecneWyniki = noweWyniki;
 
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
         }
+        // Po wyjściu z pętli wątek się kończy
     }
 }

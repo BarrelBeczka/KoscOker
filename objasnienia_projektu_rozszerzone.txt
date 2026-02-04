@@ -1,0 +1,80 @@
+# OBJAŚNIENIA KLAS PROJEKTU KOSCOKER
+
+## 1. BazaDanych.java
+**Rola:** Odpowiada za trwałe przechowywanie wyników gier.
+**Typ:** Klasa dziedzicząca po `SQLiteOpenHelper`.
+**Opis działania:** 
+Jest to nasz interfejs do bazy danych SQLite znajdującej się w telefonie. Gdy aplikacja startuje, ta klasa sprawdza, czy plik bazy istnieje. Jeśli nie (pierwsze uruchomienie), wywoływana jest metoda `onCreate`, która tworzy tabelę `wyniki` za pomocą zapytania SQL. 
+- `dodajWynik(...)`: Przyjmuje punkty graczy i datę, pakuje je w obiekt `ContentValues` i wstawia nowy wiersz do tabeli.
+- `pobierzWszystkieWyniki()`: Wysyła zapytanie `SELECT *` do bazy, pobiera wszystkie wiersze, zamienia je na obiekty klasy `Wynik` i zwraca jako listę, którą potem wyświetlamy w tabeli wyników.
+
+## 2. Gra.java
+**Rola:** Główny ekran rozgrywki (Fragment).
+**Typ:** Klasa dziedzicząca po `Fragment`.
+**Opis działania:**
+To tutaj dzieje się cała akcja. Fragment ten zarządza stanem gry (czyja tura, który rzut, ile punktów).
+- Obsługuje przycisk "Rzuć Kośćmi". Sprawdza logicznie, czy to pierwszy rzut (wszystkie kości), czy drugi (tylko niezablokowane).
+- Komunikuje się z `WatekGry`, aby uruchomić animację losowania.
+- Po zakończeniu rzutu (callback z Handlera) aktualizuje interfejs (teksty przycisków, wynik bieżącego układu).
+- Po zakończeniu gry (koniec tury gracza 2) wywołuje zapis do bazy danych i wyświetla okienko (Dialog) z podsumowaniem.
+
+## 3. LogikaPokera.java
+**Rola:** Mózg aplikacji – zasady pokera kościanego.
+**Typ:** Klasa pomocnicza (Utility) ze statycznymi metodami.
+**Opis działania:**
+Nie przechowuje żadnych danych, tylko funkcje obliczeniowe.
+- `sprawdzUklad(int[] kosci)`: To najważniejsza metoda. Dostaje tablicę 5 liczb (np. [1,1,1,4,5]) i zwraca rangę układu (liczbę od 1 do 9, gdzie 9 to Poker, a 1 to Nic). Algorytm zlicza wystąpienia oczek i sprawdza warunki od najsilniejszego (Poker) do najsłabszego.
+- `nazwaUkladu(int ranga)`: Zamienia liczbę (np. 9) na czytelny tekst (np. "Poker").
+
+## 4. MainActivity.java
+**Rola:** Główne okno, "kontener" na ekrany aplikacji.
+**Typ:** `AppCompatActivity`.
+**Opis działania:**
+Jest to punkt wejścia do aplikacji. Samo Activity jest puste i posiada jedynie kontener (`FrameLayout/FragmentContainerView`), w którym wyświetlane są Fragmenty.
+- Metoda `zmienFragment(Fragment fragment)`: Odpowiada za nawigację. Gdy klikniemy w menu, ta metoda podmienia aktualny ekran na nowy (np. z Menu na Grę) i dodaje operację do historii (BackStack), dzięki czemu przycisk "Wstecz" działa poprawnie.
+
+## 5. Menu.java
+**Rola:** Ekran startowy aplikacji.
+**Typ:** Fragment.
+**Opis działania:**
+Prosty ekran z dwoma przyciskami: "Graj" i "Wyniki". Jego jedynym zadaniem jest nasłuchiwanie kliknięć i wywoływanie `zmienFragment` w `MainActivity`, aby przenieść użytkownika do odpowiedniego ekranu.
+
+## 6. MojAdapterWynikow.java
+**Rola:** Łącznik między listą danych a widokiem listy (RecyclerView).
+**Typ:** Adapter RecyclerView.
+**Opis działania:**
+Lista w Androidzie (RecyclerView) jest bardzo wydajna – nie tworzy 1000 widoków dla 1000 wyników, tylko np. 10 widoków i "podmienia" w nich tekst podczas przewijania. Adapter tym zarządza.
+- `onCreateViewHolder`: Tworzy pusty pasek wyniku (z pliku XML `wiersz_wyniku`).
+- `onBindViewHolder`: Bierze konkretny wynik z listy (np. z pozycji 5) i wpisuje jego dane (datę, punkty) do widoku stworzonego wcześniej.
+
+## 7. WatekGry.java
+**Rola:** Animacja rzutu kośćmi w tle.
+**Typ:** Klasa dziedzicząca po `Thread`.
+**Opis działania:**
+Aby interfejs aplikacji nie "zaciął się" podczas losowania (gdybyśmy robili to w głównej pętli), używamy osobnego wątku.
+- Pętla `run()`: Działa przez około 2 sekundy. Co 100 milisekund losuje nowe liczby dla kości i odświeża widok stołu (`postInvalidate`). Dzięki temu użytkownik widzi zmieniające się szybko cyfry, co symuluje turlanie się kości.
+- Obsługuje blokady: Jeśli użytkownik zaznaczył kość (chce ją zostawić), wątek pomija ją przy losowaniu w drugim rzucie.
+
+## 8. WidokStolu.java
+**Rola:** Niestandardowy element graficzny – stół z kośćmi.
+**Typ:** Klasa dziedzicząca po `View` (Custom View).
+**Opis działania:**
+Zamiast używać gotowych obrazków, rysujemy stół "ręcznie" kodem graficznym (Canvas).
+- `onDraw(Canvas canvas)`: To tutaj "malujemy". Rysujemy zielony prostokąt (stół), potem 5 białych lub szarych kwadratów (kości) i na końcu cyfry (wyniki).
+- `onTouchEvent`: Wykrywa dotknięcie ekranu. Oblicza, czy palec trafił w obszar którejś kości. Jeśli tak, zmienia jej stan na "zablokowana" (do nie-przerzucania) i prosi o przerysowanie widoku.
+
+## 9. Wynik.java
+**Rola:** Model danych (prosta klasa POJO - Plain Old Java Object).
+**Typ:** Zwykła klasa Java.
+**Opis działania:**
+Służy tylko do trzymania danych jednego meczu w jednej "torebce". Ma pola: `id`, `punktyGracz1`, `punktyGracz2`, `data`. Ułatwia przesyłanie danych np. z bazy do adaptera listy.
+
+## 10. Wyniki.java
+**Rola:** Ekran wyświetlający historię gier.
+**Typ:** Fragment.
+**Opis działania:**
+Po wejściu na ten ekran:
+1. Tworzy obiekt `BazaDanych`.
+2. Pobiera listę wszystkich gier (`pobierzWszystkieWyniki`).
+3. Konfiguruje `RecyclerView` (listę) i podpina do niego `MojAdapterWynikow`.
+Dzięki temu widzimy przewijaną listę wszystkich rozegranych partii.

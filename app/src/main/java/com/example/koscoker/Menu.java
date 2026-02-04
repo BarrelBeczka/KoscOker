@@ -9,14 +9,15 @@ import androidx.fragment.app.Fragment;
 import com.example.koscoker.databinding.FragmentMenuBinding;
 
 // Fragment wyświetlający menu główne z przyciskiem Graj
-public class MenuFragment extends Fragment {
+public class Menu extends Fragment {
 
     private FragmentMenuBinding binding;
 
-    public MenuFragment() {
+    public Menu() {
         // Pusty konstruktor
     }
-
+    
+    // Metoda tworząca widok menu głównego
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
@@ -24,12 +25,18 @@ public class MenuFragment extends Fragment {
 
         // Obsługa przycisku "Graj" - przejście do ekranu gry
         binding.przyciskGraj.setOnClickListener(v -> {
-            ((MainActivity) requireActivity()).zmienFragment(new GraFragment());
+            ((MainActivity) requireActivity()).zmienFragment(new Gra());
+        });
+
+        // Obsługa przycisku "Wyniki"
+        binding.przyciskWyniki.setOnClickListener(v -> {
+            ((MainActivity) requireActivity()).zmienFragment(new Wyniki());
         });
 
         return binding.getRoot();
     }
-
+    
+    // Metoda czyszcząca widok menu głównego
     @Override
     public void onDestroyView() {
         super.onDestroyView();
